@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Casdoor Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        h1 {
+            color: #ffffff;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #086314;
+            color: #ffffff;
+            border: 1px solid #3d3d3d;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #19a130;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+        }
+
+        button:disabled {
+            background-color: #1a1a1a;
+            border-color: #2d2d2d;
+            color: #666666;
+            cursor: not-allowed;
+        }
+
+        #userInfo {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #3d3d3d;
+            border-radius: 4px;
+            background-color: #2d2d2d;
+            min-width: 300px;
+            text-align: left;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .info-row {
+            margin: 10px 0;
+            font-size: 16px;
+            padding: 5px 0;
+            border-bottom: 1px solid #3d3d3d;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #ffffff;
+            margin-right: 10px;
+        }
+
+        .info-value {
+            color: #b3b3b3;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Casdoor Login (Token in Cookie)</h1>
+    <button id="loginBtn" onclick="login()">Login with Casdoor</button>
+    <button id="userInfoBtn" onclick="getUserInfo()">Get User Info</button>
+    <button id="logoutBtn" onclick="logout()">Logout</button>
+
+    <div id="userInfo" style="display: none;">
+        <div class="info-row">
+            <span class="info-label">User ID:</span>
+            <span class="info-value" id="userId"></span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Name:</span>
+            <span class="info-value" id="name"></span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Surname:</span>
+            <span class="info-value" id="surname"></span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Group:</span>
+            <span class="info-value" id="group"></span>
+        </div>
+    </div>
+
+    <script>
+        const BACKEND_URL = 'http://localhost:3000';
+        let isLoggedIn = false;
+
+        window.onload = async function () {
+            await checkLoginStatus();
+        };
+
+        async function checkLoginStatus() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/user-info`, {
+                    credentials: 'include'
+                });
+
+                isLoggedIn = response.ok;
+                updateButtonStates();
+
+                if (isLoggedIn) {
+                    const userData = await response.json();
+                    displayUserInfo(userData);
+                } else {
+                    hideUserInfo();
+                }
+            } catch (error) {
+                console.error('Error checking login status:', error);
+                isLoggedIn = false;
+                updateButtonStates();
+                hideUserInfo();
+            }
+        }
+
+        function updateButtonStates() {
+            document.getElementById('loginBtn').disabled = isLoggedIn;
+            document.getElementById('logoutBtn').disabled = !isLoggedIn;
+        }
+
+        async function login() {
+            if (isLoggedIn) return;
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/login`);
+                const data = await response.json();
+                window.location.href = data.url;
+            } catch (error) {
+                alert('Error during login: ' + error.message);
+            }
+        }
+
+        async function getUserInfo() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/user-info`, {
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const userData = await response.json();
+                    displayUserInfo(userData);
+                    isLoggedIn = true;
+                    updateButtonStates();
+                } else {
+                    alert('User is not logged in!');
+                    isLoggedIn = false;
+                    updateButtonStates();
+                    hideUserInfo();
+                }
+            } catch (error) {
+                alert('Error getting user info: ' + error.message);
+                isLoggedIn = false;
+                updateButtonStates();
+                hideUserInfo();
+            }
+        }
+
+        function displayUserInfo(userData) {
+            const userInfoDiv = document.getElementById('userInfo');
+            document.getElementById('userId').textContent = userData.userId || 'N/A';
+            document.getElementById('name').textContent = userData.name || 'N/A';
+            document.getElementById('surname').textContent = userData.surname || 'N/A';
+            document.getElementById('group').textContent = userData.group || 'N/A';
+            userInfoDiv.style.display = 'block';
+        }
+
+        function hideUserInfo() {
+            const userInfoDiv = document.getElementById('userInfo');
+            userInfoDiv.style.display = 'none';
+        }
+
+        async function logout() {
+            if (!isLoggedIn) return;
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/logout`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    isLoggedIn = false;
+                    updateButtonStates();
+                    hideUserInfo();
+                } else {
+                    alert('Error during logout');
+                }
+            } catch (error) {
+                alert('Error during logout: ' + error.message);
+            }
+        }
+    </script>
+</body>
+
+</html>
