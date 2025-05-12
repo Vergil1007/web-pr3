@@ -125,8 +125,7 @@
                 updateButtonStates();
 
                 if (isLoggedIn) {
-                    const userData = await response.json();
-                    displayUserInfo(userData);
+                    hideUserInfo(); // Hide user info on load
                 } else {
                     hideUserInfo();
                 }
